@@ -233,7 +233,7 @@ WHERE return_date IS NULL;
 ```
 
 **Task 13: Identify Members with Overdue Books**  
-Write a query to identify members who have overdue books (assume a 30-day return period). Display the member's_id, member's name, book title, issue date, and days overdue.
+Write a query to identify members who have overdue books (assume a 30-day return period). Display the member's_id, member's name, book title, issue date, and days overdue.(50 DAYS)
 
 ```sql
 SELECT * FROM BOOKS;
@@ -264,25 +264,21 @@ Create a query that generates a performance report for each branch, showing the 
 CREATE TABLE branch_reports
 AS
 SELECT 
-    b.branch_id,
+	b.branch_id,
     b.manager_id,
-    COUNT(ist.issued_id) as number_book_issued,
-    COUNT(rs.return_id) as number_of_book_return,
+    COUNT(ist.issued_id) as book_issued,
+    COUNT(rst.return_id) as book_returned,
     SUM(bk.rental_price) as total_revenue
-FROM issued_status as ist
-JOIN 
-employees as e
-ON e.emp_id = ist.issued_emp_id
-JOIN
-branch as b
+FROM issued_status ist
+JOIN employees e
+ON ist.issued_emp_id = e.emp_id
+JOIN branch b
 ON e.branch_id = b.branch_id
-LEFT JOIN
-return_status as rs
-ON rs.issued_id = ist.issued_id
-JOIN 
-books as bk
+LEFT JOIN return_status rst
+ON ist.issued_id = rst.issued_id
+JOIN books bk
 ON ist.issued_book_isbn = bk.isbn
-GROUP BY 1, 2;
+GROUP BY 1,2;
 
 SELECT * FROM branch_reports;
 ```
@@ -294,14 +290,14 @@ Use the CREATE TABLE AS (CTAS) statement to create a new table active_members co
 
 CREATE TABLE active_members
 AS
-SELECT * FROM members
-WHERE member_id IN (SELECT 
-                        DISTINCT issued_member_id   
-                    FROM issued_status
-                    WHERE 
-                        issued_date >= CURRENT_DATE - INTERVAL '2 month'
-                    )
-;
+SELECT 
+		member_id, 
+        member_name
+FROM members
+WHERE member_id IN ( SELECT 
+	                  DISTINCT issued_member_id
+				   FROM issued_status
+                   WHERE issued_date <= CURDATE() - INTERVAL 2 MONTH );
 
 SELECT * FROM active_members;
 
@@ -313,37 +309,18 @@ Write a query to find the top 3 employees who have processed the most book issue
 
 ```sql
 SELECT 
-    e.emp_name,
-    b.*,
-    COUNT(ist.issued_id) as no_book_issued
-FROM issued_status as ist
-JOIN
-employees as e
-ON e.emp_id = ist.issued_emp_id
-JOIN
-branch as b
+	e.emp_name,
+    COUNT(ist.issued_id) as no_books_processed,
+    b.branch_address
+FROM employees e 
+JOIN branch b
 ON e.branch_id = b.branch_id
-GROUP BY 1, 2
+JOIN issued_status ist
+ON e.emp_id = ist.issued_emp_id
+GROUP BY 1,3
+ORDER BY COUNT(ist.issued_id) DESC
+LIMIT 3;
 ```
-
-**Task 17: Identify Members Issuing High-Risk Books**  
-Write a query to identify members who have issued books more than twice with the status "damaged" in the books table. Display the member name, book title, and the number of times they've issued damaged books.    
-
-
-
-**Task 18: Create Table As Select (CTAS)**
-Objective: Create a CTAS (Create Table As Select) query to identify overdue books and calculate fines.
-
-Description: Write a CTAS query to create a new table that lists each member and the books they have issued but not returned within 30 days. The table should include:
-    The number of overdue books.
-    The total fines, with each day's fine calculated at $0.50.
-    The number of books issued by each member.
-    The resulting table should show:
-    Member ID
-    Number of overdue books
-    Total fines
-
-
 
 ## Reports
 
